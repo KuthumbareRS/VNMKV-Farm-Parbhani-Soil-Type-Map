@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/AdministrativeResearchcentres_2.js"></script>
+        <script src="data/VNMKV_SoilScienceWebMap_3.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[19.182256493310764,76.65395446890436],[19.316335831938634,76.9342880915225]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_GoogleSatellite_0');
+        map.getPane('pane_GoogleSatellite_0').style.zIndex = 400;
+        var layer_GoogleSatellite_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleSatellite_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+        });
+        layer_GoogleSatellite_0;
+        map.addLayer(layer_GoogleSatellite_0);
+        map.createPane('pane_OSMStandard_1');
+        map.getPane('pane_OSMStandard_1').style.zIndex = 401;
+        var layer_OSMStandard_1 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OSMStandard_1',
+            opacity: 1.0,
+            attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors, CC-BY-SA</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OSMStandard_1;
+        map.addLayer(layer_OSMStandard_1);
+        function pop_AdministrativeResearchcentres_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td>' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_AdministrativeResearchcentres_2_0() {
+            return {
+                fill: false,
+                stroke: false,
+                interactive: false
+            }
+        }
+        map.createPane('pane_AdministrativeResearchcentres_2');
+        map.getPane('pane_AdministrativeResearchcentres_2').style.zIndex = 402;
+        map.getPane('pane_AdministrativeResearchcentres_2').style['mix-blend-mode'] = 'normal';
+        var layer_AdministrativeResearchcentres_2 = new L.geoJson(json_AdministrativeResearchcentres_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_AdministrativeResearchcentres_2',
+            layerName: 'layer_AdministrativeResearchcentres_2',
+            pane: 'pane_AdministrativeResearchcentres_2',
+            onEachFeature: pop_AdministrativeResearchcentres_2,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_AdministrativeResearchcentres_2_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_AdministrativeResearchcentres_2);
+        map.addLayer(layer_AdministrativeResearchcentres_2);
+        function pop_VNMKV_SoilScienceWebMap_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">_Pedon_Numb</th>\
+                        <td class="visible-with-data" id="_Pedon_Numb">' + (feature.properties['_Pedon_Numb'] !== null ? autolinker.link(String(feature.properties['_Pedon_Numb']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Soil_Type</th>\
+                        <td class="visible-with-data" id="_Soil_Type">' + (feature.properties['_Soil_Type'] !== null ? autolinker.link(String(feature.properties['_Soil_Type']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Soil_Order</th>\
+                        <td class="visible-with-data" id="_Soil_Order">' + (feature.properties['_Soil_Order'] !== null ? autolinker.link(String(feature.properties['_Soil_Order']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Soil_Depth</th>\
+                        <td class="visible-with-data" id="_Soil_Depth">' + (feature.properties['_Soil_Depth'] !== null ? autolinker.link(String(feature.properties['_Soil_Depth']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Area</th>\
+                        <td class="visible-with-data" id="_Area">' + (feature.properties['_Area'] !== null ? autolinker.link(String(feature.properties['_Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Texture</th>\
+                        <td class="visible-with-data" id="_Texture">' + (feature.properties['_Texture'] !== null ? autolinker.link(String(feature.properties['_Texture']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_pH</th>\
+                        <td class="visible-with-data" id="_pH">' + (feature.properties['_pH'] !== null ? autolinker.link(String(feature.properties['_pH']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_EC</th>\
+                        <td class="visible-with-data" id="_EC">' + (feature.properties['_EC'] !== null ? autolinker.link(String(feature.properties['_EC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Organic_Carbon</th>\
+                        <td class="visible-with-data" id="_Organic_Carbon">' + (feature.properties['_Organic_Carbon'] !== null ? autolinker.link(String(feature.properties['_Organic_Carbon']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_CaCO3</th>\
+                        <td class="visible-with-data" id="_CaCO3">' + (feature.properties['_CaCO3'] !== null ? autolinker.link(String(feature.properties['_CaCO3']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_BD</th>\
+                        <td class="visible-with-data" id="_BD">' + (feature.properties['_BD'] !== null ? autolinker.link(String(feature.properties['_BD']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Hydraulic_conductivity</th>\
+                        <td class="visible-with-data" id="_Hydraulic_conductivity">' + (feature.properties['_Hydraulic_conductivity'] !== null ? autolinker.link(String(feature.properties['_Hydraulic_conductivity']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_AWC</th>\
+                        <td class="visible-with-data" id="_AWC">' + (feature.properties['_AWC'] !== null ? autolinker.link(String(feature.properties['_AWC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Cotton_Suitability</th>\
+                        <td class="visible-with-data" id="_Cotton_Suitability">' + (feature.properties['_Cotton_Suitability'] !== null ? autolinker.link(String(feature.properties['_Cotton_Suitability']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Soyabean_Suitability</th>\
+                        <td class="visible-with-data" id="_Soyabean_Suitability">' + (feature.properties['_Soyabean_Suitability'] !== null ? autolinker.link(String(feature.properties['_Soyabean_Suitability']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Sorghum_Suitability</th>\
+                        <td class="visible-with-data" id="_Sorghum_Suitability">' + (feature.properties['_Sorghum_Suitability'] !== null ? autolinker.link(String(feature.properties['_Sorghum_Suitability']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Land_Capability_class</th>\
+                        <td class="visible-with-data" id="_Land_Capability_class">' + (feature.properties['_Land_Capability_class'] !== null ? autolinker.link(String(feature.properties['_Land_Capability_class']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Land__Irrigability class</th>\
+                        <td class="visible-with-data" id="_Land__Irrigability class">' + (feature.properties['_Land__Irrigability class'] !== null ? autolinker.link(String(feature.properties['_Land__Irrigability class']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Clay</th>\
+                        <td class="visible-with-data" id="_Clay">' + (feature.properties['_Clay'] !== null ? autolinker.link(String(feature.properties['_Clay']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_CEC</th>\
+                        <td class="visible-with-data" id="_CEC">' + (feature.properties['_CEC'] !== null ? autolinker.link(String(feature.properties['_CEC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_ESP</th>\
+                        <td class="visible-with-data" id="_ESP">' + (feature.properties['_ESP'] !== null ? autolinker.link(String(feature.properties['_ESP']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Avail_N</th>\
+                        <td class="visible-with-data" id="_Avail_N">' + (feature.properties['_Avail_N'] !== null ? autolinker.link(String(feature.properties['_Avail_N']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Avail_P</th>\
+                        <td class="visible-with-data" id="_Avail_P">' + (feature.properties['_Avail_P'] !== null ? autolinker.link(String(feature.properties['_Avail_P']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Avail_K</th>\
+                        <td class="visible-with-data" id="_Avail_K">' + (feature.properties['_Avail_K'] !== null ? autolinker.link(String(feature.properties['_Avail_K']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_DTPA_Zn</th>\
+                        <td class="visible-with-data" id="_DTPA_Zn">' + (feature.properties['_DTPA_Zn'] !== null ? autolinker.link(String(feature.properties['_DTPA_Zn']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_DTPA_Fe</th>\
+                        <td class="visible-with-data" id="_DTPA_Fe">' + (feature.properties['_DTPA_Fe'] !== null ? autolinker.link(String(feature.properties['_DTPA_Fe']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_DTPA_Mn</th>\
+                        <td class="visible-with-data" id="_DTPA_Mn">' + (feature.properties['_DTPA_Mn'] !== null ? autolinker.link(String(feature.properties['_DTPA_Mn']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_DTPA_Cu</th>\
+                        <td class="visible-with-data" id="_DTPA_Cu">' + (feature.properties['_DTPA_Cu'] !== null ? autolinker.link(String(feature.properties['_DTPA_Cu']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">_Avail_B</th>\
+                        <td class="visible-with-data" id="_Avail_B">' + (feature.properties['_Avail_B'] !== null ? autolinker.link(String(feature.properties['_Avail_B']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_VNMKV_SoilScienceWebMap_3_0(feature) {
+            switch(String(feature.properties['_Soil_Type'])) {
+                case 'Calcic Haplustepts':
+                    return {
+                pane: 'pane_VNMKV_SoilScienceWebMap_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(205,52,1,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Calcic Haplusterts':
+                    return {
+                pane: 'pane_VNMKV_SoilScienceWebMap_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(132,205,68,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Sodic Haplusterts':
+                    return {
+                pane: 'pane_VNMKV_SoilScienceWebMap_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(228,228,25,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Typic Haplusterts':
+                    return {
+                pane: 'pane_VNMKV_SoilScienceWebMap_3',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_VNMKV_SoilScienceWebMap_3');
+        map.getPane('pane_VNMKV_SoilScienceWebMap_3').style.zIndex = 403;
+        map.getPane('pane_VNMKV_SoilScienceWebMap_3').style['mix-blend-mode'] = 'normal';
+        var layer_VNMKV_SoilScienceWebMap_3 = new L.geoJson(json_VNMKV_SoilScienceWebMap_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_VNMKV_SoilScienceWebMap_3',
+            layerName: 'layer_VNMKV_SoilScienceWebMap_3',
+            pane: 'pane_VNMKV_SoilScienceWebMap_3',
+            onEachFeature: pop_VNMKV_SoilScienceWebMap_3,
+            style: style_VNMKV_SoilScienceWebMap_3_0,
+        });
+        bounds_group.addLayer(layer_VNMKV_SoilScienceWebMap_3);
+        map.addLayer(layer_VNMKV_SoilScienceWebMap_3);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var overlaysTree = [
+            {label: 'VNMKV_Soil Science Web Map<br /><table><tr><td style="text-align: center;"><img src="legend/VNMKV_SoilScienceWebMap_3_CalcicHaplustepts0.png" /></td><td>Calcic Haplustepts</td></tr><tr><td style="text-align: center;"><img src="legend/VNMKV_SoilScienceWebMap_3_CalcicHaplusterts1.png" /></td><td>Calcic Haplusterts</td></tr><tr><td style="text-align: center;"><img src="legend/VNMKV_SoilScienceWebMap_3_SodicHaplusterts2.png" /></td><td>Sodic Haplusterts</td></tr><tr><td style="text-align: center;"><img src="legend/VNMKV_SoilScienceWebMap_3_TypicHaplusterts3.png" /></td><td>Typic Haplusterts</td></tr></table>', layer: layer_VNMKV_SoilScienceWebMap_3},
+            {label: 'Administrative & Research centres ', layer: layer_AdministrativeResearchcentres_2},
+            {label: "OSM Standard", layer: layer_OSMStandard_1, radioGroup: 'bm' },
+            {label: "Google Satellite", layer: layer_GoogleSatellite_0, radioGroup: 'bm' },]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var i = 0;
+        layer_AdministrativeResearchcentres_2.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['Name'] !== null?String('<div style="color: #000000; font-size: 11pt; font-weight: bold; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['Name']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_AdministrativeResearchcentres_2'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        map.addControl(new L.Control.Search({
+            layer: layer_VNMKV_SoilScienceWebMap_3,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: '_Soil_Type'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        resetLabels([layer_AdministrativeResearchcentres_2]);
+        map.on("zoomend", function(){
+            resetLabels([layer_AdministrativeResearchcentres_2]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_AdministrativeResearchcentres_2]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_AdministrativeResearchcentres_2]);
+        });
+        </script>
+    </body>
+</html>
